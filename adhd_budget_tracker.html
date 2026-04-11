@@ -953,6 +953,23 @@ window.onerror = function(msg, src, line, col, err) {
 };
 
 // ═══════════════════════════════════════════════════════════
+//  SAFE STORAGE — iOS Safari throws SecurityError accessing
+//  localStorage on local files / with cookies blocked.
+//  Test once here; use _ls everywhere (null = unavailable).
+// ═══════════════════════════════════════════════════════════
+var _ls = null;
+(function() {
+  try {
+    var test = '__ls_test__';
+    localStorage.setItem(test, '1');
+    localStorage.removeItem(test);
+    _ls = localStorage;
+  } catch(e) {
+    _ls = null;
+  }
+}());
+
+// ═══════════════════════════════════════════════════════════
 //  CRITICAL INTERACTIVE FUNCTIONS — defined first so onclick
 //  handlers always find them, even if later code errors
 // ═══════════════════════════════════════════════════════════
@@ -1141,14 +1158,16 @@ let state = {
 //  PERSISTENCE
 // ═══════════════════════════════════════════════════════════
 function saveState() {
-  try { localStorage.setItem('adhd_budget_v4', JSON.stringify(state)); } catch(e) {}
+  if (!_ls) return;
+  try { _ls.setItem('adhd_budget_v4', JSON.stringify(state)); } catch(e) {}
 }
 
 function loadState() {
+  if (!_ls) return;
   try {
-    const raw = localStorage.getItem('adhd_budget_v4');
+    const raw = _ls.getItem('adhd_budget_v4');
     // Also try migrating from v3
-    const rawV3 = !raw ? localStorage.getItem('adhd_budget_v3') : null;
+    const rawV3 = !raw ? _ls.getItem('adhd_budget_v3') : null;
     const src = raw ? JSON.parse(raw) : (rawV3 ? JSON.parse(rawV3) : null);
     if (!src) return;
 
